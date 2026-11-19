@@ -1,0 +1,62 @@
+name: "Agent 3 · 索引加速官 (Index Booster)"
+
+on:
+  schedule:
+    # 每天 UTC 02:00（北京时间 10:00）更新 sitemap 并通知搜索引擎
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  index-boost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 刷新 sitemap 的 lastmod
+        run: |
+          TODAY=$(date -u +'%Y-%m-%d')
+          python3 - "$TODAY" << 'PY'
+          import re, sys
+          today=sys.argv[1]
+          p='sitemap.xml'
+          s=open(p).read()
+          s=re.sub(r'<lastmod>\d{4}-\d{2}-\d{2}</lastmod>', f'<lastmod>{today}</lastmod>', s)
+          open(p,'w').write(s)
+          print(f'lastmod 已更新为 {today}')
+          PY
+
+      - name: 通知 Bing 索引抓取
+        continue-on-error: true
+        run: |
+          for u in "https://blessing.forerui.com/" "https://blessing.forerui.com/zh/" "https://blessing.forerui.com/sitemap.xml"; do
+            enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$u")
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 \
+              "https://www.bing.com/indexnow?url=$enc&key=forerui-blessing-indexnow-2026" || echo "000")
+            echo "Bing IndexNow $u → $code"
+          done
+
+      - name: Ping Google sitemap（尽力而为）
+        continue-on-error: true
+        run: |
+          enc=$(python3 -c "import urllib.parse;print(urllib.parse.quote('https://blessing.forerui.com/sitemap.xml',safe=''))")
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 \
+            "https://www.google.com/ping?sitemap=$enc" || echo "000")
+          echo "Google sitemap ping → $code"
+
+      - name: 提交 sitemap 变更
+        run: |
+          git config user.name "FORÊ Bot"
+          git config user.email "bot@forerui.com"
+          git add sitemap.xml
+          if git diff --cached --quiet; then
+            echo "sitemap 无需更新"
+          else
+            git commit -m "chore(seo): refresh sitemap lastmod $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+            echo "sitemap 已更新"
+          fi
+          echo "### 索引加速完成 $(date -u +'%Y-%m-%d')" >> "$GITHUB_STEP_SUMMARY"
