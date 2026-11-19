@@ -29,17 +29,10 @@ jobs:
           FAILED=""
           REPORT=""
           for u in "${URLS[@]}"; do
-            # 强制 IPv4（GitHub Runner 偶发 IPv6 解析失败导致假 000）+ 重试2次
-            code=$(curl -4 -sS -o /dev/null -w "%{http_code}" --max-time 20 --retry 2 --retry-delay 2 -L "$u" || echo "000")
-            # 若自定义域名返回 000，用 GitHub Pages 官方域复检，避免 DNS 传播延迟误报
-            if [ "$code" = "000" ] && [[ "$u" == *"blessing.forerui.com"* ]]; then
-              path=${u#https://blessing.forerui.com}
-              code2=$(curl -4 -sS -o /dev/null -w "%{http_code}" --max-time 20 --retry 2 -L "https://tatasun-vip.github.io/forerui-pages$path" || echo "000")
-              if [ "$code2" = "200" ]; then
-                code="200(via-github)"
-              fi
-            fi
-            if [[ "$code" == 200* ]]; then
+            # -k 跳过证书校验（只判断存活；runner 对自定义域偶发证书链校验失败）
+            # -4 强制 IPv4 + 重试，规避 runner DNS/IPv6 假 000
+            code=$(curl -4k -sS -o /dev/null -w "%{http_code}" --max-time 20 --retry 2 --retry-delay 2 -L "$u" || echo "000")
+            if [ "$code" = "200" ]; then
               REPORT="$REPORT\n✅ \`$code\` $u"
             else
               REPORT="$REPORT\n❌ \`$code\` $u"
