@@ -1,0 +1,72 @@
+name: "Agent 1 · 健康哨兵 (Health Sentinel)"
+
+on:
+  schedule:
+    # 每 3 小时整点运行一次
+    - cron: "0 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 探测站点存活
+        id: probe
+        shell: bash
+        run: |
+          URLS=(
+            "https://forerui.com/"
+            "https://blessing.forerui.com/"
+            "https://blessing.forerui.com/zh/"
+            "https://blessing.forerui.com/sitemap.xml"
+            "https://blessing.forerui.com/google71fe90ff454f235a.html"
+          )
+          FAILED=""
+          REPORT=""
+          for u in "${URLS[@]}"; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 -L "$u" || echo "000")
+            if [ "$code" = "200" ]; then
+              REPORT="$REPORT\n✅ \`$code\` $u"
+            else
+              REPORT="$REPORT\n❌ \`$code\` $u"
+              FAILED="$FAILED\n- \`$code\` $u"
+            fi
+          done
+          echo -e "## 站点健康报告 $(date -u +'%Y-%m-%d %H:%M UTC')\n$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$FAILED" ]; then
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+            echo -e "FAILED<<EOF\n$FAILED\nEOF" >> "$GITHUB_ENV"
+          else
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 异常时自动开 Issue 报警
+        if: steps.probe.outputs.failed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## 🚨 站点健康告警\n\n检测到以下地址异常（非 200）：\n${process.env.FAILED}\n\n自动检测时间：${new Date().toISOString()}\n\n> 由 Agent 1 健康哨兵自动创建。恢复后请手动关闭此 Issue。`;
+            // 避免重复报警：复用最近 24h 内仍 open 的同标题 issue
+            const title = '[HEALTH] 站点可用性告警';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'health-alert', per_page: 20
+            });
+            const recent = issues.find(i => i.title === title &&
+              (Date.now() - new Date(i.created_at).getTime()) < 24*3600*1000);
+            if (recent) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: recent.number, body: '再次检测到异常：\n' + body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['health-alert']
+              });
+            }
