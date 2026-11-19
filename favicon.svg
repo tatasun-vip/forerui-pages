@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="FORÊ · Icon Mark">
+  <title>FORÊ · 图标版本</title>
+  <desc>FORÊ品牌图标——马蹄铁弧线内含手写F符号，单色，可用于烫金/favicon/社交头像。</desc>
+  <defs>
+    <linearGradient id="iconGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4B67A"/>
+      <stop offset="30%" stop-color="#E0C080"/>
+      <stop offset="60%" stop-color="#C4A882"/>
+      <stop offset="100%" stop-color="#B8945A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 基底：纸白 -->
+  <rect width="400" height="400" fill="#F5F0E8" rx="8"/>
+
+  <!-- 马蹄铁弧线——更厚重、更符号化 -->
+  <path d="M 112 228 
+           Q 112 100 200 80 
+           Q 288 100 288 228"
+        fill="none" stroke="url(#iconGold)" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- 铆钉符号——6个手工感圆点 -->
+  <circle cx="128" cy="205" r="4.0" fill="#A07840"/>
+  <circle cx="272" cy="205" r="4.0" fill="#A07840"/>
+  <circle cx="148" cy="148" r="3.0" fill="#A07840" opacity="0.55"/>
+  <circle cx="252" cy="148" r="3.0" fill="#A07840" opacity="0.55"/>
+  <circle cx="172" cy="110" r="2.2" fill="#A07840" opacity="0.35"/>
+  <circle cx="228" cy="110" r="2.2" fill="#A07840" opacity="0.35"/>
+
+  <!-- 手写风格「F」——居中的核心符号 -->
+  <g fill="#2D1B0E">
+    <!-- F 主干——粗犷有力 -->
+    <path d="M 166 148 
+             C 172 145, 180 143, 188 143 
+             L 200 143 
+             C 208 143, 212 147, 212 154 
+             L 212 168 
+             L 172 168 
+             L 172 252 
+             C 172 260, 168 264, 162 264 
+             C 156 264, 152 260, 152 252 
+             L 152 154 
+             C 152 146, 158 142, 166 148 Z"/>
+    <!-- F 主干右侧——手工笔触膨胀 -->
+    <path d="M 180 168 C 180 196, 184 230, 188 255 L 152 255 C 148 230, 146 196, 146 168 Z"/>
+    <!-- F 横笔——优雅上扬，copperplate精神 -->
+    <path d="M 195 206 
+             C 208 197, 224 190, 238 188 
+             C 244 187, 248 190, 246 194 
+             C 244 198, 238 202, 226 207 
+             L 200 214 Z"/>
+    <!-- F 横笔增强笔触——手工墨迹边缘 -->
+    <path d="M 200 208 C 212 202, 226 197, 238 196 
+             C 242 194, 244 196, 242 198 
+             C 238 200, 224 206, 210 210 Z" opacity="0.6"/>
+  </g>
+
+  <!-- 底部小装饰——优雅的点 -->
+  <circle cx="200" cy="282" r="2.5" fill="url(#iconGold)" opacity="0.5"/>
+
+</svg>
