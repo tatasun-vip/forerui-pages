@@ -1,0 +1,57 @@
+name: "Agent 5 · 网站优化官 (Narrative & Offers)"
+
+on:
+  schedule:
+    # 每周三 UTC 04:00（北京时间周三 12:00）产出一份优化提案
+    - cron: "0 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  narrative-proposal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 按周次轮换提案主题
+        id: theme
+        run: |
+          WEEK=$(( $(date -u +%s) / 604800 ))
+          MOD=$(( WEEK % 3 ))
+          case $MOD in
+            0) THEME="符文即精神寄托"; SLUG="spiritual-anchor";
+               ANGLE="每张福文不是一张普通卡片，而是一份可随身携带的精神寄托。强调手绘温度、朱砂金墨的灵性、('咒语/祝愿')背后的心意，而非商品属性。" ;;
+            1) THEME="时效与功效 · 按需择符"; SLUG="efficacy-timing";
+               ANGLE="每张符文有对应需求（事业/感情/平安/智慧）与3个月时效。引导用户按当下心境自行选择，并说明3个月后需续请方能继续生效的东方哲学逻辑（心诚则灵、定期温养）。" ;;
+            2) THEME="会员制设计"; SLUG="membership";
+               ANGLE="设计季度会员/年度会员/永久会员三档：季度对应3个月符文时效循环，年度覆盖四季轮回，永久为传承收藏。给出权益差异、定价区间建议、话术。" ;;
+          esac
+          echo "theme=$THEME" >> "$GITHUB_OUTPUT"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "angle=$ANGLE" >> "$GITHUB_ENV"
+          echo "本周主题：$THEME"
+
+      - name: 生成提案 Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const theme = '${{ steps.theme.outputs.theme }}';
+            const slug = '${{ steps.theme.outputs.slug }}';
+            const angle = process.env.ANGLE;
+            const date = new Date().toISOString().slice(0,10);
+            const title = `[COPY] 网站优化提案 · ${theme} (${date})`;
+            const body = `## 🎯 本周优化提案：${theme}\n\n> 由 Agent 5 网站优化官自动生成，供老板审阅。**采纳后由人工落地，agent 不直接改线上。**\n\n### 核心方向\n${angle}\n\n### 需要产出/确认的内容\n1. **首页主叙事改写**（中英对照）—— 把「数字卡片/下载」的措辞升级为「精神寄托/随身祝愿」。\n2. **产品页话术** —— 每张符文标注：适用需求 + 建议佩戴/使用周期（3个月）。\n3. **时效机制文案** —— 解释「3个月后需续请才继续生效」的东方逻辑：心诚则灵、符需温养、定期续缘。避免让用户觉得是强制消费。\n4. **会员制方案**（如本周主题涉及）—— 季度/年度/永久三档权益与定价建议。\n\n### 调性基准（沿用现有 124 卡 story 风格）\n- 情感化、第一人称、生活场景切入，不说教、不算命。\n- 中英对照，英文意译而非直译。\n- 关键词：手绘、宣纸、朱砂、金墨、心诚则灵、随身携带、安静地在那里。\n\n### 请老板回复\n- [ ] 采纳方向 → 我来落地具体文案\n- [ ] 需要调整角度 → 请注明\n- [ ] 本周跳过\n\n<!-- agent5:${slug}:${date} -->`;
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'copy-proposal', per_page: 30
+            });
+            const dup = issues.find(i => i.body && i.body.includes(`agent5:${slug}:${date}`));
+            if (dup) { console.log('本周提案已存在，跳过'); return; }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title, body, labels: ['copy-proposal']
+            });
+            console.log('已创建优化提案 Issue: ' + title);
