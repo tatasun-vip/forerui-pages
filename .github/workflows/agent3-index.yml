@@ -49,14 +49,5 @@ jobs:
 
       - name: 提交 sitemap 变更
         run: |
-          git config user.name "FORÊ Bot"
-          git config user.email "bot@forerui.com"
-          git add sitemap.xml
-          if git diff --cached --quiet; then
-            echo "sitemap 无需更新"
-          else
-            git commit -m "chore(seo): refresh sitemap lastmod $(date -u +%Y-%m-%d) [skip ci]"
-            git push
-            echo "sitemap 已更新"
-          fi
+          bash .github/scripts/safe_push.sh "chore(seo): refresh sitemap lastmod $(date -u +%Y-%m-%d) [skip ci]"
           echo "### 索引加速完成 $(date -u +'%Y-%m-%d')" >> "$GITHUB_STEP_SUMMARY"

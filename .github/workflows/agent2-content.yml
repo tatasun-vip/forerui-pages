@@ -97,13 +97,4 @@ jobs:
 
       - name: 自动提交
         run: |
-          git config user.name "FORÊ Bot"
-          git config user.email "bot@forerui.com"
-          git add daily sitemap.xml
-          if git diff --cached --quiet; then
-            echo "无变化，跳过提交"
-          else
-            git commit -m "chore(daily): 每日福文 $(date -u +%Y-%m-%d) [skip ci]"
-            git push
-            echo "已提交每日福文"
-          fi
+          bash .github/scripts/safe_push.sh "chore(daily): 每日福文 $(date -u +%Y-%m-%d) [skip ci]"
