@@ -1,0 +1,109 @@
+name: "Agent 2 · 内容更新官 (Daily Blessing)"
+
+on:
+  schedule:
+    # 每天 UTC 01:00（北京时间 09:00）生成当日福文
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  daily-blessing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 拉取 124 卡数据源
+        run: |
+          curl -sS --max-time 30 -o /tmp/blessings.json \
+            "https://raw.githubusercontent.com/tatasun-vip/chinese-blessing-seals/main/data/blessings.json"
+          echo "数据条目数: $(python3 -c 'import json;print(len(json.load(open("/tmp/blessings.json"))))')"
+
+      - name: 按日期确定性抽取当日福文
+        id: pick
+        run: |
+          python3 << 'PY' >> "$GITHUB_OUTPUT"
+          import json, datetime
+          data = json.load(open('/tmp/blessings.json'))
+          if isinstance(data, dict):
+              data = data.get('blessings') or data.get('cards') or list(data.values())
+          day = datetime.date.today().toordinal()
+          card = data[day % len(data)]
+          cn = card.get('chinese') or card.get('cn') or ''
+          en = card.get('english') or card.get('en') or ''
+          story = card.get('story') or {}
+          story_cn = story.get('zh', '') if isinstance(story, dict) else ''
+          story_en = story.get('en', '') if isinstance(story, dict) else ''
+          code = card.get('code', '')
+          print(f"cn={cn}")
+          print(f"en={en}")
+          print(f"code={code}")
+          print(f"story_cn={story_cn}")
+          print(f"story_en={story_en}")
+          PY
+
+      - name: 生成每日福文页
+        run: |
+          mkdir -p daily
+          DATE=$(date -u +'%Y-%m-%d')
+          cat > "daily/index.html" << EOF
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="google-site-verification" content="VO-pd1oix6xcbca32ugjjPLUXTX7RXqiu7m2Qsc8NDs" />
+          <title>每日福文 · ${{ steps.pick.outputs.cn }} | FORÊ</title>
+          <meta name="description" content="FORÊ 每日福文：${{ steps.pick.outputs.cn }} — ${{ steps.pick.outputs.en }}。四字一愿，一笔一福。">
+          <link rel="canonical" href="https://blessing.forerui.com/daily/">
+          <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+          <link rel="alternate" hreflang="en" href="https://blessing.forerui.com/">
+          <link rel="alternate" hreflang="zh" href="https://blessing.forerui.com/zh/">
+          <style>body{background:#EDE4D3;color:#2b2118;font-family:Georgia,serif;max-width:720px;margin:0 auto;padding:48px 24px;text-align:center}a{color:#C02000}</style>
+          </head>
+          <body>
+          <p style="letter-spacing:.3em;color:#B08A3E">FORÊ · DAILY BLESSING</p>
+          <h1 style="font-size:64px;margin:24px 0;color:#C02000">${{ steps.pick.outputs.cn }}</h1>
+          <p style="font-size:22px;font-style:italic">${{ steps.pick.outputs.en }}</p>
+          <hr style="border:none;border-top:1px solid #B08A3E;margin:40px 0">
+          <p>${{ steps.pick.outputs.story_cn }}</p>
+          <p style="opacity:.8">${{ steps.pick.outputs.story_en }}</p>
+          <p style="margin-top:48px"><a href="https://forerui.com/?src=daily">领取你的福文 → Get your blessing</a></p>
+          <p style="font-size:12px;opacity:.6;margin-top:40px">${DATE} · 124 枚手绘福文之一</p>
+          </body>
+          </html>
+          EOF
+          echo "已生成 daily/index.html · 今日福文: ${{ steps.pick.outputs.cn }} / ${{ steps.pick.outputs.en }}"
+          echo "### 今日福文：${{ steps.pick.outputs.cn }} — ${{ steps.pick.outputs.en }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 把每日页加入 sitemap
+        run: |
+          python3 << 'PY'
+          import re
+          p='sitemap.xml'
+          s=open(p).read()
+          url='https://blessing.forerui.com/daily/'
+          if url not in s:
+              block='''  <url>\n    <loc>https://blessing.forerui.com/daily/</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>\n'''
+              s=s.replace('</urlset>', block+'</urlset>')
+              open(p,'w').write(s)
+              print('已添加 daily 到 sitemap')
+          else:
+              print('daily 已在 sitemap')
+          PY
+
+      - name: 自动提交
+        run: |
+          git config user.name "FORÊ Bot"
+          git config user.email "bot@forerui.com"
+          git add daily sitemap.xml
+          if git diff --cached --quiet; then
+            echo "无变化，跳过提交"
+          else
+            git commit -m "chore(daily): 每日福文 $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+            echo "已提交每日福文"
+          fi
