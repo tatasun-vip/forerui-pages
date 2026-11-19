@@ -1,0 +1,82 @@
+name: "Agent 4 · SEO 巡检官 (SEO Auditor)"
+
+on:
+  schedule:
+    # 每周一 UTC 03:00（北京时间周一 11:00）
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  seo-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验关键 SEO 要素
+        id: audit
+        shell: bash
+        run: |
+          ISSUES=""
+          REPORT=""
+          check() {
+            local desc="$1" pattern="$2" file="$3"
+            if grep -q "$pattern" "$file"; then
+              REPORT="$REPORT\n✅ $desc"
+            else
+              REPORT="$REPORT\n❌ $desc （缺失：$pattern）"
+              ISSUES="$ISSUES\n- $desc 缺失"
+            fi
+          }
+          check "英文页 Google 验证 meta" "google-site-verification" index.html
+          check "中文页 Google 验证 meta" "google-site-verification" zh/index.html
+          check "英文页 canonical" "rel=\"canonical\"" index.html
+          check "中文页 canonical" "rel=\"canonical\"" zh/index.html
+          check "英文页 JSON-LD" "application/ld+json" index.html
+          check "sitemap 含首页" "blessing.forerui.com/" sitemap.xml
+          check "robots 指向 sitemap" "sitemap.xml" robots.txt
+          check "CNAME 正确" "blessing.forerui.com" CNAME
+          check "验证文件存在" "google-site-verification" google71fe90ff454f235a.html
+
+          # 校验 sitemap XML 合法性
+          if python3 -c "import xml.etree.ElementTree as ET;ET.parse('sitemap.xml')" 2>/dev/null; then
+            REPORT="$REPORT\n✅ sitemap.xml XML 合法"
+          else
+            REPORT="$REPORT\n❌ sitemap.xml XML 解析失败"
+            ISSUES="$ISSUES\n- sitemap.xml XML 非法"
+          fi
+
+          echo -e "## SEO 巡检报告 $(date -u +'%Y-%m-%d')\n$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$ISSUES" ]; then
+            echo "issues=true" >> "$GITHUB_OUTPUT"
+            echo -e "AUDIT_ISSUES<<EOF\n$ISSUES\nEOF" >> "$GITHUB_ENV"
+          else
+            echo "issues=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 发现问题时开 Issue
+        if: steps.audit.outputs.issues == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'seo-audit', per_page: 20
+            });
+            const title = '[SEO] 每周巡检发现问题';
+            const body = `## SEO 巡检发现问题\n${process.env.AUDIT_ISSUES}\n\n时间：${new Date().toISOString()}`;
+            if (issues.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issues[0].number, body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['seo-audit']
+              });
+            }
