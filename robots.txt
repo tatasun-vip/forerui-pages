@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tatasun-vip.github.io/forerui-pages/sitemap.xml
+Sitemap: https://blessing.forerui.com/sitemap.xml
