@@ -1,0 +1,119 @@
+name: "Agent 8 · X 推广官 (X Promoter)"
+
+on:
+  schedule:
+    # 每天 UTC 07:10 与 15:10 各一条（北京时间 15:10 / 23:10）
+    # 错开 agent2/3 与免费 LLM 限流窗口
+    - cron: "10 7 * * *"
+    - cron: "10 15 * * *"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "随机种子（不填则按当天日期）"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  x-post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成 X 帖子（免费 LLM + 长度校验 + 去重）
+        id: gen
+        env:
+          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+          X_SCHEDULED_AT: ${{ secrets.X_SCHEDULED_AT }}
+        run: |
+          set -u
+          ARGS=""
+          if [ -n "${{ inputs.seed }}" ]; then ARGS="--seed ${{ inputs.seed }}"; fi
+          BUFFERED="false"
+          if [ -n "${BUFFER_ACCESS_TOKEN:-}" ]; then
+            python3 .github/scripts/x_post.py --out /tmp/post.json --buffer $ARGS
+            if python3 -c "import json;d=json.load(open('/tmp/post.json'));print(d.get('buffer',{}).get('ok'))" 2>/dev/null | grep -q True; then
+              BUFFERED="true"
+            fi
+          else
+            python3 .github/scripts/x_post.py --out /tmp/post.json $ARGS
+          fi
+          echo "buffered=$BUFFERED" >> "$GITHUB_OUTPUT"
+          echo "### 今日 X 帖子（Buffer 已排程：$BUFFERED）" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/post.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 归档帖子并提交
+        run: |
+          DATE=$(date -u +'%Y-%m-%d')
+          mkdir -p x-posts
+          cp /tmp/post.json "x-posts/${DATE}.json"
+          git config user.name "FORÊ Bot"
+          git config user.email "bot@forerui.com"
+          git add x-posts x-posts.jsonl
+          if git diff --cached --quiet; then
+            echo "无变化，跳过提交"
+          else
+            git commit -m "feat(x): X 帖子 $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          fi
+
+      - name: 开 X 内容草稿 Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const post = JSON.parse(fs.readFileSync('/tmp/post.json', 'utf8'));
+            const date = new Date().toISOString().slice(0, 10);
+            const buffered = '${{ steps.gen.outputs.buffered }}' === 'true';
+            const title = `[X] ${date} 帖子草稿${buffered ? ' · 已排程' : ' · 待发布'}`;
+            const tags = (post.tags || []).map(t => '#' + t).join(' ');
+            const hooks = (post.reply_hooks || []).map(h => '- ' + h).join('\n');
+            const lines = [
+              '## 🐦 今日 X 帖子',
+              '',
+              buffered
+                ? '> **已通过 Buffer 排程**，可到 Buffer 撤回或改。'
+                : '> **未配置 Buffer 凭证，尚未发布** —— 复制下方内容手动发即可。',
+              '',
+              `### English（${post.length_en} / 280 字符）`,
+              '```',
+              post.en,
+              '```',
+              '',
+              '### 中文版',
+              '```',
+              post.zh,
+              '```',
+              '',
+              '### 话题标签',
+              tags,
+              '',
+              '### 可回复的真人钩子（真人身份互动仍需你本人）',
+              hooks,
+              '',
+              '### 元信息',
+              `- 内容支柱：\`${post.pillar}\``,
+              `- 关联符文：${post.card || '—'}`,
+              `- Buffer 状态：${buffered ? '已排程' : '未发布'}`,
+              '',
+              `<!-- agent8:${date}:${post.pillar} -->`,
+            ];
+            const body = lines.join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'x-content', per_page: 30
+            });
+            const dup = issues.find(i => i.body && i.body.includes(`agent8:${date}:${post.pillar}`));
+            if (dup) { console.log('今日草稿已存在，跳过'); return; }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title, body, labels: ['x-content']
+            });
+            console.log('已创建 X 草稿 Issue: ' + title);

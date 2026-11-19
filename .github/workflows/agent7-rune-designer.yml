@@ -1,0 +1,86 @@
+name: "Agent 7 · 符文设计官 (Rune Designer)"
+
+on:
+  schedule:
+    # 每周一 UTC 06:00（北京时间周一 14:00）产出一份符文设计简报
+    # 刻意错开 agent4/5/6 的时间，规避 Pollinations 免费接口约 45s/IP 的限流
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  rune-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成符文设计简报（免费 LLM + 保真校验）
+        id: brief
+        run: |
+          python3 .github/scripts/rune_brief.py --out /tmp/brief.md
+          echo "### 符文设计简报已生成" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/brief.md >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 归档到 design-briefs/
+        run: |
+          mkdir -p design-briefs
+          DATE=$(date -u +'%Y-%m-%d')
+          cp /tmp/brief.md "design-briefs/${DATE}.md"
+          echo "已归档 design-briefs/${DATE}.md"
+      - name: 提交设计简报
+        run: |
+          git config user.name "FORÊ Bot"
+          git config user.email "bot@forerui.com"
+          git add design-briefs
+          if git diff --cached --quiet; then
+            echo "无变化，跳过提交"
+          else
+            git commit -m "design(rune): 符文设计简报 $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          fi
+
+      - name: 开设计简报 Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const brief = fs.readFileSync('/tmp/brief.md', 'utf8');
+            const date = new Date().toISOString().slice(0, 10);
+            const title = `[RUNE] 符文设计简报 (${date})`;
+            const lines = [
+              '## 🖌 本周符文设计简报',
+              '',
+              '> 由 Agent 7 符文设计官自动生成（免费 LLM + 四字保真校验）。**这是给真人画师的设计简报，不是成图。**',
+              '',
+              '> **硬性铁律**：禁止 AI 生成图 —— 实际符文一律真人手绘，避免水印与 AI 标识。',
+              '> **合规红线**：文案禁用「治愈/疗愈/治疗/保证/有效率/算命/风水改运」，功效只写精神寄托、心境、符意、温养、陪伴。',
+              '',
+              brief,
+              '',
+              '### 老板需要确认的事',
+              '- [ ] 符文四字与寓意方向 → 我安排画师出草稿',
+              '- [ ] 构图/配色需要调整 → 请注明',
+              '- [ ] 换一枚方向 → 请注明祈愿方向',
+              '- [ ] 本期跳过',
+              '',
+              `<!-- agent7:${date} -->`,
+            ];
+            const body = lines.join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'rune-design', per_page: 30
+            });
+            const dup = issues.find(i => i.body && i.body.includes(`agent7:${date}`));
+            if (dup) { console.log('本周简报已存在，跳过'); return; }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title, body, labels: ['rune-design']
+            });
+            console.log('已创建设计简报 Issue: ' + title);

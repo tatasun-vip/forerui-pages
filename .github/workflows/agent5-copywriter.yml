@@ -30,7 +30,7 @@ jobs:
           esac
           echo "theme=$THEME" >> "$GITHUB_OUTPUT"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
-          echo "angle=$ANGLE" >> "$GITHUB_ENV"
+          echo "ANGLE=$ANGLE" >> "$GITHUB_ENV"
           echo "本周主题：$THEME"
 
       - name: 生成提案 Issue

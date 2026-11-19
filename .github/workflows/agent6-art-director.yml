@@ -30,7 +30,7 @@ jobs:
           fi
           echo "theme=$THEME" >> "$GITHUB_OUTPUT"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
-          echo "angle=$ANGLE" >> "$GITHUB_ENV"
+          echo "ANGLE=$ANGLE" >> "$GITHUB_ENV"
           echo "本期主题：$THEME"
 
       - name: 生成美术提案 Issue
