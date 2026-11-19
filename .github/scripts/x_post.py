@@ -77,7 +77,12 @@ PILLARS = [
     {
         "key": "membership",
         "label": "会员叙事",
-        "hint": "90 天温养周期 + 三档会员（季度/年度/永久）的理念，克制不推销",
+        "hint": (
+            "讲清楚「九十天一个温养周期」这个概念：符文不是一次买断的图片，"
+            "每枚有自己的季；到期可续请同一枚，也可换一枚重新起缘；"
+            "季度/年度/永久三档只是让续请不必每次重新决定。"
+            "语气克制、讲理念不推销、绝对不要罗列价格数字"
+        ),
     },
 ]
 
@@ -150,7 +155,7 @@ def has_banned(text: str) -> list:
 
 
 def clip_en(text: str, limit: int = MAX_LEN) -> str:
-    """在链接前截断，保证链接不被切掉。"""
+    """在链接前按词边界截断，保证链接完整且英文读起来不断词。"""
     if len(text) <= limit:
         return text
     link = ""
@@ -162,9 +167,30 @@ def clip_en(text: str, limit: int = MAX_LEN) -> str:
     if room < 40:
         # 链接本身就超长 → 极简处理
         return (link + " " + head[: max(0, limit - len(link) - 1)]).strip()[:limit]
-    head = head[:room].rstrip()
+    if len(head) > room:
+        # 按词边界回退：找到最后一个空格，避免英文断词
+        cut = head[:room]
+        sp = cut.rfind(" ")
+        if sp > room * 0.55:
+            cut = cut[:sp]
+        head = cut.rstrip().rstrip(",.;:!?—-")
     sep = "" if head.endswith((" ", "…")) else "…"
-    return (head + sep + " " + link).strip()
+    result = (head + sep + " " + link).strip()
+    # 双保险：仍超长则硬截
+    return result[:limit] if len(result) > limit else result
+
+
+def clip_zh(text: str, limit: int = 140) -> str:
+    """中文版按字截断（汉字宽度按 1 计，够用）。"""
+    if len(text) <= limit:
+        return text
+    m = re.search(r"https?://\S+", text)
+    link = m.group(0) if m else ""
+    head = text[: m.start()].rstrip() if m else text
+    room = limit - len(link) - 1
+    if room < 30:
+        return (link + "…")[:limit]
+    return (head[:room].rstrip() + "…\n" + link)[: limit + len(link) + 2]
 
 
 def parse_json(text: str) -> dict:
@@ -347,6 +373,7 @@ def main() -> int:
         post["pillar"] = pillar["key"]
         post["card"] = card.get("chinese", "") if card else ""
         post["en"] = clip_en(post["en"])
+        post["zh"] = clip_zh(post.get("zh", ""))
         banned = has_banned(post.get("en", "") + post.get("zh", ""))
         if banned:
             log(f"命中禁用词 {banned}，回退模板")
