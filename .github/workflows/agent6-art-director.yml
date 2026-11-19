@@ -48,8 +48,21 @@ jobs:
               owner: context.repo.owner, repo: context.repo.repo,
               state: 'open', labels: 'art-proposal', per_page: 30
             });
-            const dup = issues.find(i => i.body && i.body.includes(`agent6:${slug}:${date}`));
-            if (dup) { console.log('本期提案已存在，跳过'); return; }
+            const dup = issues.find(i => i.body && i.body.includes(`agent6:${slug}:`));
+            if (dup) {
+              // 同主题已存在：若旧版内容残缺（undefined），补一条修正说明；否则跳过
+              if (dup.body.includes('undefined')) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: dup.number,
+                  body: `### ⚠️ 修正：早期版本的核心方向渲染异常\n\n此前本提案的「核心方向」为空（变量传递 bug 已修）。正确方向为：\n\n${angle}\n\n<!-- fix:${slug}:${date} -->`
+                });
+                console.log('已为 ' + dup.number + ' 补充修正说明');
+              } else {
+                console.log('本期提案已存在，跳过');
+              }
+              return;
+            }
             await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
               title, body, labels: ['art-proposal']

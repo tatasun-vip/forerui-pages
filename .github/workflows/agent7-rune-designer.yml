@@ -70,8 +70,7 @@ jobs:
               state: 'open', labels: 'rune-design', per_page: 30
             });
             const dup = issues.find(i => i.body && i.body.includes(`agent7:${date}`));
-            if (dup) { console.log('本周简报已存在，跳过'); return; }
-            await github.rest.issues.create({
+            if (dup) { console.log('本周简报已存在，跳过'); return; }            await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
               title, body, labels: ['rune-design']
             });
