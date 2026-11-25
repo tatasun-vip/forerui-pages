@@ -84,6 +84,16 @@ PILLARS = [
             "语气克制、讲理念不推销、绝对不要罗列价格数字"
         ),
     },
+    {
+        "key": "story-serial",
+        "label": "连载故事",
+        "hint": (
+            "讲一个具体的人和一个具体场景的真实感小故事（用欧美名字+城市，如 Maya/Chicago、Daniel/London、Sophie/Toronto）："
+            "深夜/清晨/搬家/想家这类安静时刻，一枚四字福文如何被贴在某处、成为一份贴身的心意寄托。"
+            "语气像转述别人的信，克制不煽情，绝不承诺灵验或结果。"
+            "结尾用一句钩子引导读下一则故事或请一枚自己的福文，链接用 https://blessing.forerui.com/story/"
+        ),
+    },
 ]
 
 SYSTEM_PROMPT = """你是 FORÊ（福尘）品牌的 X（Twitter）内容写手，为一个"来自东方的神秘佛系"人设账号写帖子。
@@ -94,7 +104,7 @@ SYSTEM_PROMPT = """你是 FORÊ（福尘）品牌的 X（Twitter）内容写手�
 1. 单条帖子（英文部分）必须 ≤ 280 字符。你会同时给出中文版和英文版，两个都要短。
 2. **绝对禁止**这些词：治愈、疗愈、治疗、保证、有效率、包治、算命、风水改运、cure、heal、guarantee、therapeutic。
 3. 功效只能写成「精神寄托 / 心境 / 心绪 / 符意 / 温养 / 陪伴」这类主观语汇。
-4. 允许出现链接。链接用 https://forerui.com/?src=x
+4. 允许出现链接。默认链接用 https://forerui.com/?src=x；若写「连载故事」支柱，链接改用地 https://blessing.forerui.com/story/（引导读下一则故事）。
 5. 不要用"亲们""家人们""绝绝子"这类电商腔。
 6. 不要堆砌 emoji，最多 1 个。
 7. 英文是意译，不是直译；英文版要像母语者写的短诗或短句。
@@ -108,7 +118,7 @@ JSON 结构：
 - zh 与 en 都要短。en 严格 ≤ 280 字符（含空格与链接）。
 - tags 恰好 3 个，第一个必须是 福尘FORÊ。
 - reply_hooks 恰好 2 个开放式问题。
-- 链接统一用 https://forerui.com/?src=x
+- 链接：默认 https://forerui.com/?src=x；「连载故事」支柱用 https://blessing.forerui.com/story/
 """
 
 
