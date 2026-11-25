@@ -29,15 +29,25 @@ jobs:
           print(f'lastmod 已更新为 {today}')
           PY
 
-      - name: 通知 Bing 索引抓取
+      - name: 批量通知 Bing 索引抓取（IndexNow POST，全量 URL）
         continue-on-error: true
         run: |
-          for u in "https://blessing.forerui.com/" "https://blessing.forerui.com/zh/" "https://blessing.forerui.com/story/" "https://blessing.forerui.com/daily/" "https://blessing.forerui.com/sitemap.xml"; do
-            enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$u")
-            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 \
-              "https://www.bing.com/indexnow?url=$enc&key=forerui-blessing-indexnow-2026" || echo "000")
-            echo "Bing IndexNow $u → $code"
-          done
+          python3 - << 'PY'
+          import json, re, urllib.request
+          key = "forerui-blessing-indexnow-2026"
+          xml = open("sitemap.xml", encoding="utf-8").read()
+          urls = re.findall(r"<loc>([^<]+)</loc>", xml)
+          # IndexNow 单次上限约 10000 URL，本项目 129 条一次即可
+          payload = json.dumps({"host":"blessing.forerui.com","key":key,"urlList":urls}).encode()
+          req = urllib.request.Request(
+              "https://www.bing.com/indexnow", data=payload, method="POST",
+              headers={"Content-Type":"application/json; charset=utf-8","User-Agent":"Fore-SEO/1.0"})
+          try:
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  print(f"IndexNow 批量推送 {len(urls)} URL → {r.status}")
+          except Exception as e:
+              print(f"IndexNow 推送失败（不阻塞）: {e}")
+          PY
 
       - name: Ping Google sitemap（尽力而为）
         continue-on-error: true
