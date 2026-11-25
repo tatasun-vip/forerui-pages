@@ -32,7 +32,7 @@ jobs:
       - name: 通知 Bing 索引抓取
         continue-on-error: true
         run: |
-          for u in "https://blessing.forerui.com/" "https://blessing.forerui.com/zh/" "https://blessing.forerui.com/sitemap.xml"; do
+          for u in "https://blessing.forerui.com/" "https://blessing.forerui.com/zh/" "https://blessing.forerui.com/story/" "https://blessing.forerui.com/daily/" "https://blessing.forerui.com/sitemap.xml"; do
             enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$u")
             code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 \
               "https://www.bing.com/indexnow?url=$enc&key=forerui-blessing-indexnow-2026" || echo "000")
