@@ -1,6 +1,6 @@
 {
-  "zh": "太阳普照 —— 太阳普照，最普通也最不能少。这一颗星每天升起来，没人抬头看，但它在。普照的意思不…\nhttps://forerui.com/?src=x",
-  "en": "The Sun Shines Wide.\n\nThe Sun Shines Wide — the most ordinary star, also the most necessary. It rises every day, no one looks up, but it is there. Wide does not mean specia\n\nhttps://forerui.com/?src=x",
+  "zh": "神将护身 —— 神将护身，神将是天上的兵。古人写\"护身\"是贴身的意思。这一张印的，是给那种你身边…\nhttps://forerui.com/?src=x",
+  "en": "Divine General Protects.\n\nDivine General Protects — divine general is a soldier in heaven. The ancients wrote protect body as close to the body. This seal, for that person next\n\nhttps://forerui.com/?src=x",
   "tags": [
     "福尘FORÊ",
     "手绘符文",
@@ -10,9 +10,9 @@
     "你今天最想被哪四个字护着？",
     "这副手印，你会做到第几个？"
   ],
-  "pillar": "use-case",
-  "card": "太阳普照",
-  "length_en": 200,
+  "pillar": "card-drop",
+  "card": "神将护身",
+  "length_en": 204,
   "date": "2026-11-26",
   "buffer": {
     "ok": true,
@@ -20,8 +20,8 @@
     "org": "6aab81526fa316fb6e3da4fa",
     "result": {
       "post": {
-        "id": "6b0823379d0dfdddd9c04e29",
-        "dueAt": "2026-11-26T13:12:00.000Z"
+        "id": "6b086f2ac81617797dcc5746",
+        "dueAt": "2026-11-26T22:10:00.000Z"
       }
     }
   }
