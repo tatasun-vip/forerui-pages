@@ -327,7 +327,7 @@ def _find_x_channel() -> tuple[str, str] | None:
     for org in orgs:
         oid = org.get("id", "")
         cq = """
-        query($organizationId: ID!) {
+        query($organizationId: OrganizationId!) {
           channels(input: { organizationId: $organizationId }) {
             id service type
           }
@@ -382,6 +382,8 @@ def publish_to_buffer(post: dict) -> dict:
             "schedulingType": "automatic",
             "mode": "customScheduled",
             "dueAt": due,
+            "assets": [],
+            "needsApproval": False,
         }
     else:
         mutation = """
@@ -397,6 +399,8 @@ def publish_to_buffer(post: dict) -> dict:
             "channelId": channel_id,
             "schedulingType": "automatic",
             "mode": "addToQueue",
+            "assets": [],
+            "needsApproval": False,
         }
 
     try:
