@@ -1,0 +1,28 @@
+{
+  "zh": "太阳普照 —— 太阳普照，最普通也最不能少。这一颗星每天升起来，没人抬头看，但它在。普照的意思不…\nhttps://forerui.com/?src=x",
+  "en": "The Sun Shines Wide.\n\nThe Sun Shines Wide — the most ordinary star, also the most necessary. It rises every day, no one looks up, but it is there. Wide does not mean specia\n\nhttps://forerui.com/?src=x",
+  "tags": [
+    "福尘FORÊ",
+    "手绘符文",
+    "东方美学"
+  ],
+  "reply_hooks": [
+    "你今天最想被哪四个字护着？",
+    "这副手印，你会做到第几个？"
+  ],
+  "pillar": "use-case",
+  "card": "太阳普照",
+  "length_en": 200,
+  "date": "2026-11-26",
+  "buffer": {
+    "ok": true,
+    "channel": "6aac0012ea19ca0bde698a46",
+    "org": "6aab81526fa316fb6e3da4fa",
+    "result": {
+      "post": {
+        "id": "6b0823379d0dfdddd9c04e29",
+        "dueAt": "2026-11-26T13:12:00.000Z"
+      }
+    }
+  }
+}
