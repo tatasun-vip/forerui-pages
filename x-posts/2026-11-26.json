@@ -1,18 +1,18 @@
 {
-  "zh": "神将护身 —— 神将护身，神将是天上的兵。古人写\"护身\"是贴身的意思。这一张印的，是给那种你身边…\nhttps://forerui.com/?src=x",
-  "en": "Divine General Protects.\n\nDivine General Protects — divine general is a soldier in heaven. The ancients wrote protect body as close to the body. This seal, for that person next\n\nhttps://forerui.com/?src=x",
+  "zh": "Maya 在芝加哥的凌晨独自走过空旷的仓库，手里握着一张手写的四字福文：相敬如宾。她把它贴在冷风吹起的旧门框上，像是给自己的回忆留下一份温养。那刻，灯光柔和，心绪像窗外的雾，静静沉淀。\\n\\n想过在家里的哪一…\nhttps://blessing.forerui.com/story/",
+  "en": "Maya walks the silent Chicago lofts at dawn, clutching a four‑character note: 相敬如宾. She tucks it to the cool frame of an old door, a quiet companion for her thoughts. Lights dim, mist drifts—she lets the moment settle.\\n\\nWhere might you place… https://blessing.forerui.com/story/",
   "tags": [
     "福尘FORÊ",
-    "手绘符文",
-    "东方美学"
+    "#福尘FORÊ",
+    "quiet moments"
   ],
   "reply_hooks": [
-    "你今天最想被哪四个字护着？",
-    "这副手印，你会做到第几个？"
+    "你最喜欢在什么时候留下温养？",
+    "有什么地方让你觉得心绪最安静？"
   ],
-  "pillar": "card-drop",
-  "card": "神将护身",
-  "length_en": 204,
+  "pillar": "story-serial",
+  "card": "相敬如宾",
+  "length_en": 280,
   "date": "2026-11-26",
   "buffer": {
     "ok": true,
@@ -20,8 +20,8 @@
     "org": "6aab81526fa316fb6e3da4fa",
     "result": {
       "post": {
-        "id": "6b086f2ac81617797dcc5746",
-        "dueAt": "2026-11-26T22:10:00.000Z"
+        "id": "6b08c51d07985b96e3f76d67",
+        "dueAt": "2026-11-26T23:55:00.000Z"
       }
     }
   }
