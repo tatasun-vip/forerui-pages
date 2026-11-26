@@ -44,7 +44,8 @@ BLESSINGS_URL = (
 )
 
 HISTORY_FILE = "x-posts.jsonl"
-BUFFER_BASE = "https://api.bufferapp.com/1"
+# Buffer 新 GraphQL API（旧 REST v1 api.bufferapp.com 已废弃，2027-02-01 关闭）
+BUFFER_GRAPHQL = "https://api.buffer.com"
 
 MAX_LEN = 280
 BANNED = [
@@ -284,53 +285,126 @@ def template_post(cards: list, pillar: dict, rng: random.Random) -> dict:
     }
 
 
-def buffer_request(path: str, params: dict, method: str = "GET") -> dict:
+def buffer_graphql(query: str, variables: dict | None = None) -> dict:
+    """Buffer GraphQL API：Bearer 个人 key，POST 一个 endpoint。"""
     token = os.environ.get("BUFFER_ACCESS_TOKEN", "")
     if not token:
         raise RuntimeError("未配置 BUFFER_ACCESS_TOKEN")
-    url = f"{BUFFER_BASE}/{path}?{urllib.parse.urlencode(params, doseq=True)}"
-    req = urllib.request.Request(url, method=method)
-    req.add_header("Authorization", f"Bearer {token}")
+    body = {"query": query}
+    if variables:
+        body["variables"] = variables
+    req = urllib.request.Request(
+        BUFFER_GRAPHQL,
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "Fore-SEO/1.0",
+        },
+    )
     with urllib.request.urlopen(req, timeout=30) as resp:
-        body = resp.read().decode("utf-8")
-    return json.loads(body) if body.strip() else {}
+        data = json.loads(resp.read().decode("utf-8"))
+    if data.get("errors"):
+        raise RuntimeError(str(data["errors"])[:300])
+    return data.get("data", {})
+
+
+def _find_x_channel() -> tuple[str, str] | None:
+    """查 account → organizations → channels，找到 X/Twitter 频道与其 org。"""
+    q = """
+    query {
+      account {
+        organizations { id name }
+      }
+    }
+    """
+    acct = buffer_graphql(q).get("account") or {}
+    orgs = acct.get("organizations") or []
+    if not orgs:
+        # 有些账号 channels 不需要 org，尝试不带 org 查询
+        orgs = [{"id": ""}]
+    for org in orgs:
+        oid = org.get("id", "")
+        cq = """
+        query($organizationId: ID!) {
+          channels(input: { organizationId: $organizationId }) {
+            id service type
+          }
+        }
+        """ if oid else """
+        query {
+          channels { id service type }
+        }
+        """
+        vars_ = {"organizationId": oid} if oid else None
+        try:
+            channels = (buffer_graphql(cq, vars_).get("channels") or [])
+        except Exception:  # noqa: BLE001
+            continue
+        for c in channels:
+            if c.get("service") in ("twitter", "x"):
+                return c["id"], oid
+    return None
 
 
 def publish_to_buffer(post: dict) -> dict:
-    """创建 Buffer 排程帖。失败不抛出，返回结果说明。"""
+    """用 Buffer GraphQL 创建 X 帖；失败不抛出，返回结果说明。"""
     token = os.environ.get("BUFFER_ACCESS_TOKEN", "")
     if not token:
         return {"ok": False, "reason": "no-token"}
     try:
-        profiles = buffer_request("profiles.json", {"access_token": token})
+        found = _find_x_channel()
     except Exception as e:  # noqa: BLE001
-        return {"ok": False, "reason": f"profiles-failed: {e}"}
-
-    twitter = None
-    for p in profiles if isinstance(profiles, list) else []:
-        if p.get("service") == "twitter":
-            twitter = p
-            break
-    if not twitter:
-        return {"ok": False, "reason": "no-twitter-channel"}
+        return {"ok": False, "reason": f"channels-failed: {e}"}
+    if not found:
+        return {"ok": False, "reason": "no-x-channel"}
+    channel_id, org_id = found
 
     scheduled_at = os.environ.get("X_SCHEDULED_AT", "").strip()
     text = f"{post['en']}\n\n" + " ".join(f"#{t}" for t in post.get("tags", []))
     text = clip_en(text)
 
-    payload = {
-        "access_token": token,
-        "text": text,
-        "profile_ids[]": twitter.get("id"),
-    }
+    # 有指定时间用 customScheduled，否则 addToQueue 让 Buffer 自动排到下一个空档
     if scheduled_at:
-        payload["scheduled_at"] = scheduled_at
+        due = scheduled_at if scheduled_at.endswith("Z") else scheduled_at + ":00.000Z"
+        mutation = """
+        mutation($input: CreatePostInput!) {
+          createPost(input: $input) {
+            ... on PostActionSuccess { post { id dueAt } }
+            ... on MutationError { message }
+          }
+        }
+        """
+        inp = {
+            "text": text,
+            "channelId": channel_id,
+            "schedulingType": "automatic",
+            "mode": "customScheduled",
+            "dueAt": due,
+        }
     else:
-        payload["now"] = "false"
+        mutation = """
+        mutation($input: CreatePostInput!) {
+          createPost(input: $input) {
+            ... on PostActionSuccess { post { id dueAt } }
+            ... on MutationError { message }
+          }
+        }
+        """
+        inp = {
+            "text": text,
+            "channelId": channel_id,
+            "schedulingType": "automatic",
+            "mode": "addToQueue",
+        }
 
     try:
-        res = buffer_request("updates/create.json", payload, method="POST")
-        return {"ok": True, "profile": twitter.get("id"), "result": res}
+        res = buffer_graphql(mutation, {"input": inp})
+        cp = res.get("createPost") or {}
+        if "message" in cp:  # MutationError
+            return {"ok": False, "reason": f"create-error: {cp['message']}"}
+        return {"ok": True, "channel": channel_id, "org": org_id, "result": cp}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "reason": f"create-failed: {e}"}
 
