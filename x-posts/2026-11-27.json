@@ -15,14 +15,7 @@
   "length_en": 209,
   "date": "2026-11-27",
   "buffer": {
-    "ok": true,
-    "channel": "6aac0012ea19ca0bde698a46",
-    "org": "6aab81526fa316fb6e3da4fa",
-    "result": {
-      "post": {
-        "id": "6b09bcf8d5bf252ef53c2adc",
-        "dueAt": "2026-11-27T22:46:00.000Z"
-      }
-    }
+    "ok": false,
+    "reason": "create-error: Invalid post: Whoops, it looks like you've already got this one scheduled or posted around the same time. We're not able to post the same thing twice so close together."
   }
 }
