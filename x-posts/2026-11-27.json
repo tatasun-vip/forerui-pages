@@ -1,0 +1,28 @@
+{
+  "zh": "白虎肃西 —— 白虎肃西，白虎是西方的主神。古人把\"肃\"字用得很重——肃是清场。这一张印的，是给…\nhttps://forerui.com/?src=x",
+  "en": "White Tiger Subdues the West.\n\nWhite Tiger Subdues the West — White Tiger is the main god of the west. The ancients used the word su heavily. Su is clearing the field. This seal, fo\n\nhttps://forerui.com/?src=x",
+  "tags": [
+    "福尘FORÊ",
+    "手绘符文",
+    "东方美学"
+  ],
+  "reply_hooks": [
+    "你今天最想被哪四个字护着？",
+    "这副手印，你会做到第几个？"
+  ],
+  "pillar": "quiet-philosophy",
+  "card": "白虎肃西",
+  "length_en": 209,
+  "date": "2026-11-27",
+  "buffer": {
+    "ok": true,
+    "channel": "6aac0012ea19ca0bde698a46",
+    "org": "6aab81526fa316fb6e3da4fa",
+    "result": {
+      "post": {
+        "id": "6b09bcf8d5bf252ef53c2adc",
+        "dueAt": "2026-11-27T22:46:00.000Z"
+      }
+    }
+  }
+}
